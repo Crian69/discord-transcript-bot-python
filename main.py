@@ -1,10 +1,10 @@
-import re
 import discord
 from discord.ext import commands
 
 intents = discord.Intents.all()
 client = commands.Bot(command_prefix='/', help_command=None, intents=intents)
 TOKEN = ''
+
 
 @client.event
 async def on_ready():
@@ -13,7 +13,6 @@ async def on_ready():
 
 @client.command()
 async def transcript(ctx: discord.ext.commands.Context):
-
     css = '''
         body {
         background-color: #36393e;
@@ -99,20 +98,24 @@ async def transcript(ctx: discord.ext.commands.Context):
         }
     '''
 
-    def check_message_mention(msgs: str):
-        mentions = re.findall("<@!\\d+>", msgs)
-        if not mentions:
-            return msgs
-
-        else:
-            msg = ''
+    def check_message_mention(msgs: discord.Message):
+        mentions = msgs.mentions
+        m = msgs.content
+        if mentions:
+            msg: str = ''
             for mention in mentions:
-                msg = msgs.replace(mention,
-                                   f"<span class=\"mention\">@{client.get_user(int(mention[3:-1])).name}</span>")
+                msg = m.replace(str(mention.id),
+                                f"<span class=\"mention\">@{mention.name}</span>")
+                msg = msg.replace('<@', '')
+                msg = msg.replace('!', '')
+                msg = msg.replace('>>', '>')
             return msg
 
+        else:
+            return msgs.content
+
     messages: discord.TextChannel.history = await ctx.channel.history(limit=None, oldest_first=True).flatten()
-    f = open(f'transcripts\\{ctx.channel}.html', 'w', encoding="utf-8")
+    f = open('file.html', 'w', encoding="utf-8")
 
     f.write(
         f'''
@@ -139,17 +142,20 @@ async def transcript(ctx: discord.ext.commands.Context):
         '''
     )
     for message in messages:
-        if message.attachments:
-            content = f"<img src=\"{message.attachments[0].url}\" width=\"200\" alt=\"embed\" \\>"
+        if message.embeds:
+            content = 'Embed'
+
+        elif message.attachments:
+            content = f"<img src=\"{message.attachments[0].url}\" width=\"200\" alt=\"Attachment\" \\>"
 
         else:
-            content = check_message_mention(message.content)
+            content = check_message_mention(message)
 
         f.write(f'''
         <div class="message-group">
-            <div class="author-avatar-container"><img class=author-avatar src={ctx.author.avatar_url}></div>
+            <div class="author-avatar-container"><img class=author-avatar src={message.author.avatar_url}></div>
             <div class="messages">
-                <span class="author-name" >{ctx.author.name}</span><span class="timestamp">{message.created_at.strftime("%b %d, %Y %H:%M")}</span>
+                <span class="author-name" >{message.author.name}</span><span class="timestamp">{message.created_at.strftime("%b %d, %Y %H:%M")}</span>
                 <div class="message">
                     <div class="content"><span class="markdown">{content}</span></div>
                 </div>
@@ -163,6 +169,7 @@ async def transcript(ctx: discord.ext.commands.Context):
     ''')
     f.close()
 
-    await ctx.channel.send(file=discord.File(f'transcripts\\{ctx.channel}.html'))
+    await ctx.channel.send(file=discord.File('file.html'))
+
 
 client.run(TOKEN)
