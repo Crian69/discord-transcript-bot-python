@@ -99,20 +99,29 @@ async def transcript(ctx: discord.ext.commands.Context):
     '''
 
     def check_message_mention(msgs: discord.Message):
-        mentions = msgs.mentions
-        m = msgs.content
-        if mentions:
-            msg: str = ''
-            for mention in mentions:
-                msg = m.replace(str(mention.id),
-                                f"<span class=\"mention\">@{mention.name}</span>")
-                msg = msg.replace('<@', '')
-                msg = msg.replace('!', '')
-                msg = msg.replace('>>', '>')
-            return msg
-
-        else:
-            return msgs.content
+        user_mentions: list = msgs.raw_mentions
+        role_mentions: list = msgs.raw_role_mentions
+        channel_mentions: list = msgs.raw_channel_mentions
+        total_mentions: list = user_mentions + role_mentions + channel_mentions
+        m:str = msgs.content
+        for mentions in total_mentions:
+            if mentions in user_mentions:
+                for mention in user_mentions:
+                    m = m.replace(str(f"<@{mention}>"),
+                                  f"<span class=\"mention\">@{client.get_user(mention).name}</span>")
+                    m = m.replace(str(f"<@!{mention}>"),
+                                  f"<span class=\"mention\">@{client.get_user(mention).name}</span>")
+            elif mentions in role_mentions:
+                for mention in role_mentions:
+                    m = m.replace(str(f"<@&{mention}>"),
+                                  f"<span class=\"mention\">@{ctx.guild.get_role(mention).name}</span>")
+            elif mentions in channel_mentions:
+                for mention in channel_mentions:
+                    m = m.replace(str(f"<#{mention}>"),
+                                  f"<span class=\"mention\">#{client.get_channel(mention)}</span>")
+            else:
+                pass
+        return m
 
     messages: discord.TextChannel.history = await ctx.channel.history(limit=None, oldest_first=True).flatten()
     f = open('file.html', 'w', encoding="utf-8")
