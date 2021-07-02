@@ -99,26 +99,26 @@ async def transcript(ctx: discord.ext.commands.Context):
     '''
 
     def check_message_mention(msgs: discord.Message):
-        user_mentions: list = msgs.raw_mentions
-        role_mentions: list = msgs.raw_role_mentions
-        channel_mentions: list = msgs.raw_channel_mentions
+        user_mentions: list = msgs.mentions
+        role_mentions: list = msgs.role_mentions
+        channel_mentions: list = msgs.channel_mentions
         total_mentions: list = user_mentions + role_mentions + channel_mentions
-        m:str = msgs.content
+        m: str = msgs.content
         for mentions in total_mentions:
             if mentions in user_mentions:
                 for mention in user_mentions:
-                    m = m.replace(str(f"<@{mention}>"),
-                                  f"<span class=\"mention\">@{client.get_user(mention).name}</span>")
-                    m = m.replace(str(f"<@!{mention}>"),
-                                  f"<span class=\"mention\">@{client.get_user(mention).name}</span>")
+                    m = m.replace(str(f"<@{mention.id}>"),
+                                  f"<span class=\"mention\">@{mention.name}</span>")
+                    m = m.replace(str(f"<@!{mention.id}>"),
+                                  f"<span class=\"mention\">@{mention.name}</span>")
             elif mentions in role_mentions:
                 for mention in role_mentions:
-                    m = m.replace(str(f"<@&{mention}>"),
-                                  f"<span class=\"mention\">@{ctx.guild.get_role(mention).name}</span>")
+                    m = m.replace(str(f"<@&{mention.id}>"),
+                                  f"<span class=\"mention\">@{mention.name}</span>")
             elif mentions in channel_mentions:
                 for mention in channel_mentions:
-                    m = m.replace(str(f"<#{mention}>"),
-                                  f"<span class=\"mention\">#{client.get_channel(mention)}</span>")
+                    m = m.replace(str(f"<#{mention.id}>"),
+                                  f"<span class=\"mention\">#{mention.name}</span>")
             else:
                 pass
         return m
@@ -155,8 +155,48 @@ async def transcript(ctx: discord.ext.commands.Context):
             content = 'Embed'
 
         elif message.attachments:
-            content = f"<img src=\"{message.attachments[0].url}\" width=\"200\" alt=\"Attachment\" \\>"
+            # IS AN IMAGE:
+            if message.attachments[0].url.endswith(('jpg', 'png', 'gif', 'bmp')):
+                if message.content:
+                    content = check_message_mention(message) + '<br>' + f"<img src=\"{message.attachments[0].url}\" width=\"200\" alt=\"Attachment\" \\>"
+                else:
+                    content = f"<img src=\"{message.attachments[0].url}\" width=\"200\" alt=\"Attachment\" \\>"
 
+            # IS A VIDEO
+            elif message.attachments[0].url.endswith(('mp4', 'ogg', 'flv', 'mov', 'avi')):
+                if message.content:
+                    content = check_message_mention(message) + '<br>' + f'''
+                    <video width="320" height="240" controls>
+                      <source src="{message.attachments[0].url}" type="video/{message.attachments[0].url[-3:]}">
+                    Your browser does not support the video.
+                    </video>
+                    '''
+                else:
+                    content = f'''
+                    <video width="320" height="240" controls>
+                      <source src="{message.attachments[0].url}" type="video/{message.attachments[0].url[-3:]}">
+                    Your browser does not support the video.
+                    </video>
+                    '''
+            elif message.attachments[0].url.endswith(('mp3', 'boh')):
+                if message.content:
+                    content = check_message_mention(message) + '<br>' + f'''
+                    <audio controls>
+                      <source src="{message.attachments[0].url}" type="audio/{message.attachments[0].url[-3:]}">
+                    Your browser does not support the audio element.
+                    </audio>
+                    '''
+                else:
+                    content = f'''
+                    <audio controls>
+                      <source src="{message.attachments[0].url}" type="audio/{message.attachments[0].url[-3:]}">
+                    Your browser does not support the audio element.
+                    </audio>
+                    '''
+            # OTHER TYPE OF FILES
+            else:
+                # add things
+                pass
         else:
             content = check_message_mention(message)
 
