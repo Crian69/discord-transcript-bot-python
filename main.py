@@ -1,3 +1,5 @@
+import io
+
 import discord
 from discord.ext import commands
 
@@ -124,10 +126,8 @@ async def transcript(ctx: discord.ext.commands.Context):
         return m
 
     messages: discord.TextChannel.history = await ctx.channel.history(limit=None, oldest_first=True).flatten()
-    f = open('file.html', 'w', encoding="utf-8")
 
-    f.write(
-        f'''
+    f = f'''
         <!DOCTYPE html>
         <html>
 
@@ -149,7 +149,7 @@ async def transcript(ctx: discord.ext.commands.Context):
                 </div>
             </div>
         '''
-    )
+
     for message in messages:
         if message.embeds:
             content = 'Embed'
@@ -200,7 +200,7 @@ async def transcript(ctx: discord.ext.commands.Context):
         else:
             content = check_message_mention(message)
 
-        f.write(f'''
+        f += f'''
         <div class="message-group">
             <div class="author-avatar-container"><img class=author-avatar src={message.author.avatar_url}></div>
             <div class="messages">
@@ -210,15 +210,14 @@ async def transcript(ctx: discord.ext.commands.Context):
                 </div>
             </div>
         </div>
-        ''')
-    f.write('''
+        '''
+    f += '''
             </div>
         </body>
     </html>
-    ''')
-    f.close()
+    '''
 
-    await ctx.channel.send(file=discord.File('file.html'))
+    await ctx.channel.send(file=discord.File(fp=io.StringIO(f), filename='file.html'))
 
 
 client.run(TOKEN)
